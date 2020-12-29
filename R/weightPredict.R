@@ -90,9 +90,10 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b){
         # Weight calculation; solving the SDE
         predTable[,preweight := 1 + dA_f - dA_cf + jumpTerm]
         predTable[,weights:=cumprod(preweight),by=id]
+        predTable[,dK := preweight - 1]        
         
         predTable <- predTable[takeOut==1,]
-        predTable <- predTable[,names(predTable) %in% c("id","to","weights"),with=F]
+        predTable <- predTable[,names(predTable) %in% c("id","to","weights", "dK"),with=F]
         
         # Estimators evaluate weights in the left limit:
         names(predTable)[names(predTable)=="to"] <- "from"

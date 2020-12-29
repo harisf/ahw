@@ -43,12 +43,14 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         
         # Individuals weight constant after time of treatment
         Table[isAtRiskForTreatment != 1,weights := weights[1],by=id]
-        
+        # similalry for dK?
+        Table[isAtRiskForTreatment != 1,dK := dK[1],by=id]
         
         
         Table <- subset(Table,select= !(names(Table) %in% c("rowNumber","numRep","putEventTimes","isAtRiskForTreatment","eventTime")))
         
         Table[,weights:=naReplace(weights),by=id]
+        Table[,dK:=naReplace(dK),by=id]
 
         # Truncate weights that are outside a given range
         Table$weights[Table$weights < weightRange[1]] <- weightRange[1]
