@@ -2,9 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
+R/.DS_Store
 src/*.o
 src/*.so
 src/*.dll
 frame1.txt
 fr1.txt
 tst.R
+temp/
