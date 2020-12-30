@@ -2,8 +2,9 @@
 refineTable <- function(dataFr,atRiskState,eventState){
   baseTable <- as.data.table(dataFr)
   
-  # Refine at all event times in the population when at risk
-  fineRefineTimes <- c(0,baseTable$to[baseTable$from.state %in% c(atRiskState)])
+  # Refine at treatment times in the population when at risk
+  #fineRefineTimes <- c(0,baseTable[from.state %in% c(atRiskState), to])
+  fineRefineTimes <- c(0,baseTable[from.state %in% c(atRiskState) & to.state == eventState, to])
   
   # Defining rownumber
   baseTable$rowNumber <- 1:nrow(baseTable)
