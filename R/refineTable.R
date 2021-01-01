@@ -33,8 +33,10 @@ refineTable <- function(dataFr,atRiskState,eventState){
   Table[,to := putTreatmentTimes]
   Table[,from := c(from[1],to[-length(to)]),by=id]
   
-  # Setting to.state = 0 as long as subjects don't have events
-  Table[isAtRiskForTreatment==1,to.state := c(rep(0,length(to)-1),baseTable$to.state[rowNumber[1]]),by=rowNumber]
+  # Setting to.state = 0 (treat.pop) as long as subjects don't have events
+  Table[isAtRiskForTreatment==1,to.state := c(rep(paste0(eventState,".pop"),length(to)-1),baseTable$to.state[rowNumber[1]]),by=rowNumber]
+  # Matching from.state to the newly set to.state
+  Table[isAtRiskForTreatment==1,from.state := c(from.state[1], to.state[-length(to)]),by=rowNumber]
   
   # The long format is the same when subjects are not at risk for being treated
   Table[isAtRiskForTreatment!=1]$to <- baseTable[isAtRiskForTreatment!=1]$to
