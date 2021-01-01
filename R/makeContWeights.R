@@ -39,7 +39,8 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         Table <- refineTable(dataFr,atRiskState,eventState)
         
         # Merge so that Table includes the weight estimates 
-        Table <- merge(Table,weightFrame,by=c("id","from"),all.x=T)
+        Table <- merge(Table,weightFrame[, !c("dK")],by.x=c("id","from"), by.y = c("id", "to"),all.x=T)
+        Table <- merge(Table,weightFrame[, .(id, to, dK)],by.x=c("id","to"), by.y = c("id", "to"),all.x=T)
         
         # Individuals weight constant after time of treatment
         Table[isAtRiskForTreatment != 1,weights := weights[1],by=id]

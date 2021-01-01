@@ -95,8 +95,10 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b){
         predTable <- predTable[takeOut==1,]
         predTable <- predTable[,names(predTable) %in% c("id","to","weights", "dK"),with=F]
         
-        # Estimators evaluate weights in the left limit:
-        names(predTable)[names(predTable)=="to"] <- "from"
+        # Estimators evaluate weights in the left limit: 
+        #NOTE: since estimators evaulate weights in the left limit, but dK at
+        #the event times, we now implemet this difference when merging on the
+        #"to"-column in weightFrame.R
         
         return(predTable)
 }
