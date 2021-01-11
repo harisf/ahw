@@ -1,5 +1,5 @@
 
-makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),willPlotWeights=T){
+makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T){
         
         if(class(faFit) != "aalen" | class(cfaFit) != "aalen")
           stop("The survival fits must be of type aalen.",call. = F)
@@ -41,21 +41,25 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # Merge so that Table includes the weight estimates 
         Table <- merge(Table,weightFrame[, !c("dK")],by.x=c("id","from"), by.y = c("id", "to"),all.x=T)
         Table <- merge(Table,weightFrame[, .(id, to, dK)],by.x=c("id","to"), by.y = c("id", "to"),all.x=T)
+        setcolorder(Table, c("id", "from", "to"))
         
-        # Individuals weight constant after time of treatment
+        # Individuals weight constant after time of treatment 
+        # (and the corresponding treatment process is set to NA)
         Table[isAtRiskForTreatment != 1,weights := weights[1],by=id]
-        # similalry for dK?
-        Table[isAtRiskForTreatment != 1,dK := dK[1],by=id]
+        Table[isAtRiskForTreatment != 1,dK := NA,by=id]
         
         
         Table <- subset(Table,select= !(names(Table) %in% c("rowNumber","numRep","putEventTimes","isAtRiskForTreatment","eventTime")))
         
         Table[,weights:=naReplace(weights),by=id]
-        Table[,dK:=naReplace(dK),by=id]
 
         # Truncate weights that are outside a given range
         Table$weights[Table$weights < weightRange[1]] <- weightRange[1]
         Table$weights[Table$weights > weightRange[2]] <- weightRange[2]
+        
+        # Also truncate the increments of the treatment process (dK) 
+        Table[dK < dKRange[[1]], dK := dKRange[[1]]]
+        Table[dK > dKRange[[2]], dK := dKRange[[2]]]
         
         # Optional plot of the weight trajectories
         if(willPlotWeights == T)
