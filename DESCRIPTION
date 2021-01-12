@@ -18,3 +18,4 @@ Description: Estimates continuous time weights for performing causal survival
 License: CC BY-NC 4.0
 Encoding: UTF-8
 RoxygenNote: 6.1.1
+LinkingTo: Rcpp
