@@ -2,11 +2,15 @@
 
 # Creating data.table with the individual predicted cumulative hazard increments.
 # Estimates weights at the provided event times.
-weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b){
+weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible=NULL){
         
         # willPlotWeights <- match.arg(willPlotWeights,choices=willPlotWeights,several.ok = T)
         
         fPredTimes <- fPred$time;cfPredTimes <- cfPred$time
+        
+        fPredTimesDesignXNonInvertible <- attr(fPred, "timesDesignXNonInvertible")
+        cfPredTimesDesignXNonInvertible <- attr(cfPred, "timesDesignXNonInvertible") 
+        timesDesignXNonInvertible <- sort(c(fPredTimesDesignXNonInvertible, cfPredTimesDesignXNonInvertible))
         
         totTimes <- sort(unique(c(fPredTimes,cfPredTimes,eventTimes)))
         nTimes <- length(totTimes)
@@ -65,6 +69,17 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b){
         predTable[,takeOut:=1*(to%in%eventTimes)]
         predTable[to==0,takeOut:=1]
         
+        # tag EventTimes where the design matrix wa singular, as reported by
+        # timereg::aalen during model fitting
+        predTable[EventId == 1, designXNonInvertible := 0]
+        #predTable[EventId == 1 & EventTimes %in% timesDesignXNonInvertible, designXNonInvertible := 1]
+        predTable[EventId == 1, EventTimeXNonInvertible := {
+                tol <- 1e-6 #.Machine$double.eps^0.5
+                uniqueEventTime <- unique(EventTimes)
+                nearlyEqual <- abs(uniqueEventTime - timesDesignXNonInvertible) <= tol
+                any(nearlyEqual)
+                }, by = id]
+        
         # Evaluating predicted cumulative hazards at (lagged) event times
         predTable <- predTable[,c("A_f","A_cf") := .(cumsum(dA_f),cumsum(dA_cf)),by=id]
         predTable[,c("A_f_lag","A_cf_lag") := .(A_f[lagInd],A_cf[lagInd]),by=id]
@@ -80,6 +95,9 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b){
         
         predTable[,jumpTerm:=jumpTerm - 1]
         predTable[event==0,jumpTerm:=0]
+        
+        if(!is.null(thetaDesignXNonInvertible))
+                predTable[EventTimeXNonInvertible == 1, jumpTerm:= thetaDesignXNonInvertible]
         
         # Checking for "invalid" terms (e.g. 0/0)
         numNaIds <- nrow(predTable[jumpTerm %in% c(NA,NaN,-Inf, Inf),])

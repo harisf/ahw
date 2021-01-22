@@ -1,5 +1,5 @@
 
-makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T){
+makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T, thetaDesignXNonInvertible=NULL){
         
         if(class(faFit) != "aalen" | class(cfaFit) != "aalen")
           stop("The survival fits must be of type aalen.",call. = F)
@@ -23,6 +23,9 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         pft <- predict(faFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0)
         cpft <- predict(cfaFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0)
         
+        attr(pft, "timesDesignXNonInvertible") <- attr(faFit, "timesDesignXNonInvertible")
+        attr(cpft, "timesDesignXNonInvertible") <- attr(cfaFit, "timesDesignXNonInvertible")
+        
         # ids <- unique(dataFr[,idName,with=F])
         ids <- unique(dataFr$id)
         eventIds <- wtFrame$id[wtFrame$to.state %in% eventState]
@@ -33,7 +36,7 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         
         # Obtain estimated weights
         fPred<- pft;cfPred  <- cpft
-        weightFrame <- weightPredict(pft,cpft,wtFrame,ids,eventTimes,eventIds,b)
+        weightFrame <- weightPredict(pft,cpft,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible)
 
         # Refining the data.frame for individuals at risk
         Table <- refineTable(dataFr,atRiskState,eventState)
