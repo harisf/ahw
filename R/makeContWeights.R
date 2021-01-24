@@ -1,5 +1,5 @@
-
-makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T, thetaDesignXNonInvertible=NULL){
+# dataFr: a data.table
+makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T, thetaDesignXNonInvertible=NULL, max.time = NULL){
         
         if(class(faFit) != "aalen" | class(cfaFit) != "aalen")
           stop("The survival fits must be of type aalen.",call. = F)
@@ -11,27 +11,32 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         saveNames <- names(dataFr)[namesMatch]
         names(dataFr)[namesMatch] <- c("from.state","to.state","from","to","id")
         
-        dataFr <- as.data.table(dataFr)
+        if(!is.null(max.time))
+          dataFr <- dataFr[to <= max.time]
 
         # Add noise to tied times
         #dataFr <- addNoiseAtEventTimes(dataFr)
         
-        # data frame to get predictions along
-        wtFrame <- dataFr[dataFr$from.state %in% atRiskState,]
+        # Data table to get predictions along
+        wtFrame <- dataFr[from.state %in% atRiskState]
+        # Note that we need to provide the event times at which predictions are
+        # calculated. Otherwise, event times from the fitting procedure are used
+        # (which could go beyond the intended follow-up when max.time != NULL )
+        pft <- predict(faFit,newdata=wtFrame, n.sim=0,se=F,resample.iid=0,
+                       times = c(0, wtFrame[to.state == eventState, sort(to)]))
+        cpft <- predict(cfaFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0,
+                        times = c(0, wtFrame[to.state == eventState, sort(to)]))
         
-        
-        pft <- predict(faFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0)
-        cpft <- predict(cfaFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0)
-        
+        # Keep the times at which the design matrix from the fitting procedure
+        # was non-invertible
         attr(pft, "timesDesignXNonInvertible") <- attr(faFit, "timesDesignXNonInvertible")
         attr(cpft, "timesDesignXNonInvertible") <- attr(cfaFit, "timesDesignXNonInvertible")
         
-        # ids <- unique(dataFr[,idName,with=F])
-        ids <- unique(dataFr$id)
-        eventIds <- wtFrame$id[wtFrame$to.state %in% eventState]
+        ids <- dataFr[, unique(id)]
+        eventIds <- wtFrame[to.state %in% eventState, id]
         
         # Times we want to estimate the weights at
-        eventTimes <- wtFrame$to[wtFrame$to.state %in% eventState]
+        eventTimes <- wtFrame[to.state %in% eventState, to]
         sortedEventTimes <- sort(eventTimes)
         
         # Obtain estimated weights
@@ -51,14 +56,16 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         Table[isAtRiskForTreatment != 1,weights := weights[1],by=id]
         Table[isAtRiskForTreatment != 1,dK := NA,by=id]
         
-        
+        # Remove unwanted columns
         Table <- subset(Table,select= !(names(Table) %in% c("rowNumber","numRep","putEventTimes","isAtRiskForTreatment","eventTime")))
         
+        # Set weights to the last available value. This should apply to weights
+        # after treatment time (this check is not implemented here!)
         Table[,weights:=naReplace(weights),by=id]
 
         # Truncate weights that are outside a given range
-        Table$weights[Table$weights < weightRange[1]] <- weightRange[1]
-        Table$weights[Table$weights > weightRange[2]] <- weightRange[2]
+        Table[weights < weightRange[[1]], weights := weightRange[[1]]]
+        Table[weights > weightRange[[2]], weights := weightRange[[2]]]
         
         # Also truncate the increments of the treatment process (dK) 
         Table[dK < dKRange[[1]], dK := dKRange[[1]]]
@@ -66,12 +73,11 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         
         # Optional plot of the weight trajectories
         if(willPlotWeights == T)
-                plotContWeights(Table)
+          plotContWeights(Table)
         
         # Switching names back
         namesMatch <- match(c("from.state","to.state","from","to","id"),names(Table))
         names(Table)[namesMatch] <- saveNames
         
         return(Table)
-        
 }
