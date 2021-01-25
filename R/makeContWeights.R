@@ -11,8 +11,8 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         saveNames <- names(dataFr)[namesMatch]
         names(dataFr)[namesMatch] <- c("from.state","to.state","from","to","id")
         
-        if(!is.null(max.time))
-          dataFr <- dataFr[to <= max.time]
+        # if(!is.null(max.time))
+        #   dataFr <- dataFr[to <= max.time]
 
         # Add noise to tied times
         #dataFr <- addNoiseAtEventTimes(dataFr)
@@ -22,10 +22,15 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # Note that we need to provide the event times at which predictions are
         # calculated. Otherwise, event times from the fitting procedure are used
         # (which could go beyond the intended follow-up when max.time != NULL )
+        if(!is.null(max.time))
+          predTimes <- wtFrame[to.state == eventState & to <= max.time, sort(to)]
+        else
+          predTimes <- wtFrame[to.state == eventState, sort(to)]
+        
         pft <- predict(faFit,newdata=wtFrame, n.sim=0,se=F,resample.iid=0,
-                       times = c(0, wtFrame[to.state == eventState, sort(to)]))
+                       times = c(0, predTimes))
         cpft <- predict(cfaFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0,
-                        times = c(0, wtFrame[to.state == eventState, sort(to)]))
+                        times = c(0, predTimes))
         
         # Keep the times at which the design matrix from the fitting procedure
         # was non-invertible
