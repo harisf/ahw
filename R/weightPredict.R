@@ -25,7 +25,7 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDe
         
         mtf <- match(fPredTimes,totTimes)
         mtcf <- match(cfPredTimes,totTimes)
-        mtf <- rep(mtf)
+        #mtf <- rep(mtf)
         
         dA_f <- as.vector(apply(fPred$S0,1,function(rw)-diff(c(0,log(rw)))))
         dA_cf <- as.vector(apply(cfPred$S0,1,function(rw)-diff(c(0,log(rw)))))
@@ -69,9 +69,9 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDe
         predTable[,takeOut:=1*(to%in%eventTimes)]
         predTable[to==0,takeOut:=1]
         
-        # tag EventTimes where the design matrix wa singular, as reported by
+        # tag EventTimes where the design matrix was singular, as reported by
         # timereg::aalen during model fitting
-        predTable[EventId == 1, designXNonInvertible := 0]
+        #predTable[EventId == 1, designXNonInvertible := 0]
         #predTable[EventId == 1 & EventTimes %in% timesDesignXNonInvertible, designXNonInvertible := 1]
         predTable[EventId == 1, EventTimeXNonInvertible := {
                 tol <- 1e-6 #.Machine$double.eps^0.5
@@ -97,7 +97,7 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDe
         predTable[event==0,jumpTerm:=0]
         
         if(!is.null(thetaDesignXNonInvertible))
-                predTable[EventTimeXNonInvertible == 1, jumpTerm:= thetaDesignXNonInvertible]
+                predTable[EventTimeXNonInvertible == TRUE, jumpTerm:= thetaDesignXNonInvertible]
         
         # Checking for "invalid" terms (e.g. 0/0)
         numNaIds <- nrow(predTable[jumpTerm %in% c(NA,NaN,-Inf, Inf),])
@@ -113,9 +113,9 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDe
         predTable <- predTable[,names(predTable) %in% c("id","to","weights", "dK"),with=F]
         
         # Estimators evaluate weights in the left limit: 
-        #NOTE: since estimators evaulate weights in the left limit, but dK at
-        #the event times, we now implemet this difference when merging on the
-        #"to"-column in weightFrame.R
+        #NOTE: since estimators evaluate weights in the left limit, but dK at
+        #the event times, we now implement this difference when merging on the
+        #"to"-column in makeContWeights.R
         
         return(predTable)
 }

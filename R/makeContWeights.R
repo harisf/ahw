@@ -22,15 +22,19 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # Note that we need to provide the event times at which predictions are
         # calculated. Otherwise, event times from the fitting procedure are used
         # (which could go beyond the intended follow-up when max.time != NULL )
-        if(!is.null(max.time))
-          predTimes <- wtFrame[to.state == eventState & to <= max.time, sort(to)]
-        else
-          predTimes <- wtFrame[to.state == eventState, sort(to)]
+        if(!is.null(max.time)) {
+          predTimes <- wtFrame[to.state == eventState & to <= max.time, to]
+          predTimeIds <- wtFrame[to.state == eventState & to <= max.time, id]
+        }
+        else {
+          predTimes <- wtFrame[to.state == eventState, to]
+          predTimeIds <- wtFrame[to.state == eventState, id]
+        }
         
         pft <- predict(faFit,newdata=wtFrame, n.sim=0,se=F,resample.iid=0,
-                       times = c(0, predTimes))
+                       times = c(0, sort(predTimes)))
         cpft <- predict(cfaFit,newdata=wtFrame,n.sim=0,se=F,resample.iid=0,
-                        times = c(0, predTimes))
+                        times = c(0, sort(predTimes)))
         
         # Keep the times at which the design matrix from the fitting procedure
         # was non-invertible
@@ -38,10 +42,10 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         attr(cpft, "timesDesignXNonInvertible") <- attr(cfaFit, "timesDesignXNonInvertible")
         
         ids <- dataFr[, unique(id)]
-        eventIds <- wtFrame[to.state %in% eventState, id]
+        eventIds <- predTimeIds #wtFrame[to.state %in% eventState, id]
         
         # Times we want to estimate the weights at
-        eventTimes <- wtFrame[to.state %in% eventState, to]
+        eventTimes <- predTimes # wtFrame[to.state %in% eventState, to]
         sortedEventTimes <- sort(eventTimes)
         
         # Obtain estimated weights
@@ -65,7 +69,10 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         Table <- subset(Table,select= !(names(Table) %in% c("rowNumber","numRep","putEventTimes","isAtRiskForTreatment","eventTime")))
         
         # Set weights to the last available value. This should apply to weights
-        # after treatment time (this check is not implemented here!)
+        # after treatment time (this check is not implemented here!) This also
+        # applies to weight estimates at times after max.time, which are the
+        # times after which the design matrix in the treatment models (obs/hyp)
+        # could be non-invertible (again, this check is also not implemented here!)
         Table[,weights:=naReplace(weights),by=id]
 
         # Truncate weights that are outside a given range
