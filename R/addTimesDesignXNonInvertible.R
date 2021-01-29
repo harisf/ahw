@@ -1,9 +1,12 @@
-addTimesDesignXNonInvertible <- function(aalenFit, consoleMessagesFilePath){
+addTimesDesignXNonInvertible <- function(aalenFit, consoleMessagesFilePath = NULL, outFileLines = NULL){
+  if(is.null(consoleMessagesFilePath) & is.null(outFileLines))
+    stop("Either provide the file path or the character vector containing the output messages from timereg::aalen.")
   
   # regex pattern that matches a number of the form 3.141593
   digitPattern <- "\\d.\\d+"
   
-  outFileLines <- readLines(consoleMessagesFilePath)
+  if(!is.null(consoleMessagesFilePath))
+    outFileLines <- readLines(consoleMessagesFilePath)
   
   timesDesignXNonInvertible <- list()
   
