@@ -1,5 +1,5 @@
 # dataFr: a data.table
-makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T, thetaDesignXNonInvertible=NULL, max.time = NULL){
+makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTimeName,stopTimeName,startStatusName,endStatusName,idName,b,weightRange = c(0,10),dKRange = c(-10,10),willPlotWeights=T, thetaDesignXNonInvertible=NULL, max.time = NULL, thetaRange = NULL){
         
         if(class(faFit) != "aalen" | class(cfaFit) != "aalen")
           stop("The survival fits must be of type aalen.",call. = F)
@@ -23,8 +23,8 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # calculated. Otherwise, event times from the fitting procedure are used
         # (which could go beyond the intended follow-up when max.time != NULL )
         if(!is.null(max.time)) {
-          predTimes <- wtFrame[to.state == eventState & to <= max.time, to]
-          predTimeIds <- wtFrame[to.state == eventState & to <= max.time, id]
+          predTimes <- wtFrame[to.state == eventState & to < max.time, to]
+          predTimeIds <- wtFrame[to.state == eventState & to < max.time, id]
         }
         else {
           predTimes <- wtFrame[to.state == eventState, to]
@@ -50,7 +50,7 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         
         # Obtain estimated weights
         fPred<- pft;cfPred  <- cpft
-        weightFrame <- weightPredict(pft,cpft,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible)
+        weightFrame <- weightPredict(pft,cpft,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible, thetaRange)
 
         # Refining the data.frame for individuals at risk
         Table <- refineTable(dataFr,atRiskState,eventState)
@@ -75,13 +75,15 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # could be non-invertible (again, this check is also not implemented here!)
         Table[,weights:=naReplace(weights),by=id]
 
-        # Truncate weights that are outside a given range
-        Table[weights < weightRange[[1]], weights := weightRange[[1]]]
-        Table[weights > weightRange[[2]], weights := weightRange[[2]]]
-        
-        # Also truncate the increments of the treatment process (dK) 
-        Table[dK < dKRange[[1]], dK := dKRange[[1]]]
-        Table[dK > dKRange[[2]], dK := dKRange[[2]]]
+        if(is.null(thetaRange)){
+          # Truncate weights that are outside a given range
+          Table[weights < weightRange[[1]], weights := weightRange[[1]]]
+          Table[weights > weightRange[[2]], weights := weightRange[[2]]]
+          
+          # Also truncate the increments of the treatment process (dK) 
+          Table[dK < dKRange[[1]], dK := dKRange[[1]]]
+          Table[dK > dKRange[[2]], dK := dKRange[[2]]]
+        }
         
         # Optional plot of the weight trajectories
         if(willPlotWeights == T)

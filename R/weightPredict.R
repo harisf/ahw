@@ -2,7 +2,7 @@
 
 # Creating data.table with the individual predicted cumulative hazard increments.
 # Estimates weights at the provided event times.
-weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible=NULL){
+weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDesignXNonInvertible=NULL, thetaRange = NULL){
         
         # willPlotWeights <- match.arg(willPlotWeights,choices=willPlotWeights,several.ok = T)
         
@@ -92,6 +92,11 @@ weightPredict <- function(fPred,cfPred,wtFrame,ids,eventTimes,eventIds,b,thetaDe
         
         # Convex modification for small times
         predTable[to<3*b,jumpTerm:=(3*b-to)/(3*b) + (to/(3*b))*jumpTerm]
+        
+        if(!is.null(thetaRange)){
+                predTable[jumpTerm < thetaRange[[1]], jumpTerm := thetaRange[[1]]]
+                predTable[jumpTerm > thetaRange[[2]], jumpTerm := thetaRange[[2]]]
+        }
         
         predTable[,jumpTerm:=jumpTerm - 1]
         predTable[event==0,jumpTerm:=0]
