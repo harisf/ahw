@@ -20,7 +20,7 @@ plotContWeights <- function(fr,stopTimeName="to",startStatusName="from.state",en
         # wt <- na.locf0(wt)
         wpr <- wt
          
-        ylm <- c(max(c(0, min(fr$weights))), min(c(5, max(fr$weights))))
+        ylm <- c(max(c(-10, min(fr$weights))), min(c(10, max(fr$weights))))
         plot(tms,wt,type="l",xlim=c(0,tmx),ylim=ylm,col="grey",xlab="time",ylab="weights")
         for(i in 2:numIds){
 
@@ -38,4 +38,6 @@ plotContWeights <- function(fr,stopTimeName="to",startStatusName="from.state",en
         wpr <- wpr/numIds
         lines(tms,wpr,col="red")
         cat('Mean weights: ',mean(wpr))
+        
+        abline(v = attr(fr, "max.time"), lty = "dashed")
 }
