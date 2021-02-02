@@ -63,7 +63,7 @@ makeContWeights <- function(faFit,cfaFit,dataFr,atRiskState,eventState,startTime
         # Individuals weight constant after time of treatment 
         # (and the corresponding treatment process is set to NA)
         Table[isAtRiskForTreatment != 1,weights := weights[1],by=id]
-        Table[isAtRiskForTreatment != 1,dK := NA,by=id]
+        Table[isAtRiskForTreatment != 1,dK := NA_real_,by=id]
         
         # Remove unwanted columns
         Table <- subset(Table,select= !(names(Table) %in% c("rowNumber","numRep","putEventTimes","isAtRiskForTreatment","eventTime")))
